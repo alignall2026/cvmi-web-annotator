@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CVMI Orthodontic Cephalometric Web Annotator - Multi-Doctor Edition</title>
+    <!-- Inter Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-base: #0c0c0e;
+            --bg-surface: #16161a;
+            --bg-panel: #1e1e24;
+            --border-color: #2e2e38;
+            --text-main: #e4e4eb;
+            --text-muted: #8e8e9f;
+            --accent: #2e8bfa;
+            --accent-hover: #4d9cff;
+            --success: #32d74b;
+            --warning: #ff9f0a;
+            
+            --c2-color: rgb(255, 80, 80);
+            --c3-color: rgb(80, 255, 80);
+            --c4-color: rgb(80, 180, 255);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Setup */
+        header {
+            background-color: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        header h1 {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        header h1 span {
+            color: var(--accent);
+        }
+
+        .api-config {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-grow: 1;
+            max-width: 500px;
+            margin: 0 16px;
+        }
+
+        .api-config label {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .api-config input {
+            background-color: var(--bg-base);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            width: 100%;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .api-config input:focus {
+            border-color: var(--accent);
+        }
+
+        .doctor-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 400px;
+            padding: 24px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+        }
+
+        /* Workspace Grid */
+        .workspace {
+            display: flex;
+            flex-grow: 1;
+            height: calc(100vh - 60px);
+            overflow: hidden;
+        }
+
+        /* Left Panel - Image Registry */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-surface);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .search-box {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-box input {
+            background-color: var(--bg-base);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .image-list-container {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .image-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .image-item:hover {
+            background-color: rgba(255,255,255,0.03);
+        }
+
+        .image-item.active {
+            background-color: rgba(46, 139, 250, 0.15);
+            border-left: 3px solid var(--accent);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--border-color);
+        }
+
+        .status-dot.annotated {
+            background-color: var(--success);
+        }
+
+        /* Center View Canvas */
+        .canvas-area {
+            flex-grow: 1;
+            position: relative;
+            background-color: var(--bg-base);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            outline: none;
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+
+        /* Right Panel - Metadata & Instructions */
+        .meta-panel {
+            width: 320px;
+            background-color: var(--bg-surface);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            padding: 20px;
+            overflow-y: auto;
+            gap: 20px;
+        }
+
+        .panel-section {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+        }
+
+        .panel-section h3 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .instruction-box {
+            background-color: rgba(46, 139, 250, 0.08);
+            border: 1px dashed var(--accent);
+            color: var(--accent-hover);
+            border-radius: 4px;
+            padding: 12px;
+            font-size: 12.5px;
+            line-height: 1.5;
+        }
+
+        /* Landmark Checklist */
+        .landmark-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 180px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .landmark-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .landmark-list::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .landmark-list::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+
+        .landmark-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            background-color: rgba(255,255,255,0.01);
+            border: 1px solid transparent;
+        }
+
+        .landmark-row.active {
+            border-color: var(--accent);
+            background-color: rgba(46,139,250,0.05);
+        }
+
+        .landmark-row.done {
+            color: var(--text-muted);
+        }
+
+        .landmark-tag {
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        .tag-c2 { background-color: rgba(255, 80, 80, 0.15); color: var(--c2-color); }
+        .tag-c3 { background-color: rgba(80, 255, 80, 0.15); color: var(--c3-color); }
+        .tag-c4 { background-color: rgba(80, 180, 255, 0.15); color: var(--c4-color); }
+
+        .check-icon {
+            font-size: 10px;
+            color: var(--success);
+            display: none;
+        }
+
+        .landmark-row.done .check-icon {
+            display: inline;
+        }
+
+        /* Button controls */
+        .btn {
+            background-color: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn:disabled {
+            background-color: var(--border-color);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            margin-top: 8px;
+        }
+
+        .btn-outline:hover {
+            background-color: rgba(255,255,255,0.03);
+        }
+
+        /* Console Logger */
+        .console-log {
+            font-family: monospace;
+            font-size: 11px;
+            background-color: #08080a;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+            height: 100px;
+            overflow-y: auto;
+            color: #32d74b;
+        }
+
+        .shortcut-table {
+            font-size: 11px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .shortcut-table td {
+            padding: 4px 0;
+            color: var(--text-muted);
+        }
+
+        .shortcut-table kbd {
+            background-color: var(--bg-base);
+            border: 1px solid var(--border-color);
+            padding: 1px 4px;
+            border-radius: 3px;
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Doctor Login Modal Gate -->
+    <div class="modal-overlay" id="doctorModal">
+        <div class="modal-card">
+            <h2 style="font-size: 16px; margin-bottom: 8px; color: var(--accent); font-weight: 600;">Doctor Identification</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4;">
+                Enter your Doctor Name / ID to launch your personalized annotation session. Annotations will save directly to your designated Google Drive folder.
+            </p>
+            <form id="docLoginForm" onsubmit="handleDoctorLogin(event)">
+                <input type="text" id="docNameInput" placeholder="e.g. Dr. Smith" required
+                       style="width:100%; padding:10px 12px; font-size:13px; background:var(--bg-base); border:1px solid var(--border-color); color:var(--text-main); border-radius:4px; margin-bottom:16px; outline:none;">
+                <button type="submit" class="btn">Start Session</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Header Section -->
+    <header>
+        <h1><span>CVMI</span> Web Annotator</h1>
+        
+        <div class="api-config">
+            <label for="appsScriptUrl">Apps Script URL:</label>
+            <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="doctor-badge">
+                <span id="docNameDisplay" style="color: var(--accent); font-weight: 600;">Dr. Unassigned</span>
+                <button class="btn btn-outline" id="btnSwitchDoc" style="margin-top:0; padding:2px 8px; font-size:11px;">Switch</button>
+            </div>
+            <button class="btn btn-outline" id="btnToggleQueue" style="margin-top:0; padding:4px 8px; font-size:11px;">🔀 Jumbled</button>
+            <div style="font-size: 12px; white-space: nowrap;" id="progressLbl">0 / 400 Labeled</div>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <!-- Sidebar Image List -->
+        <div class="sidebar">
+            <div class="search-box">
+                <input type="text" id="searchImg" placeholder="Search Image... (e.g. 023)">
+            </div>
+            <div class="image-list-container" id="imageList">
+                <!-- Javascript populated -->
+            </div>
+        </div>
+
+        <!-- Interactive Canvas Viewport -->
+        <div class="canvas-area" id="canvasContainer" tabindex="0">
+            <canvas id="cephCanvas"></canvas>
+        </div>
+
+        <!-- Sidebar Meta Tools -->
+        <div class="meta-panel">
+            <div class="panel-section">
+                <h3>Sequence Guide</h3>
+                <div class="instruction-box" id="instructionTxt">
+                    Please place coordinates manually.
+                </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="panel-section">
+                <h3>Actions</h3>
+                <button class="btn" id="btnSave">Save to Google Drive</button>
+                <button class="btn btn-outline" id="btnReset">Reset Template</button>
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <button class="btn btn-outline" id="btnPrev" style="margin-top:0;">Previous</button>
+                    <button class="btn btn-outline" id="btnNext" style="margin-top:0;">Next</button>
+                </div>
+            </div>
+
+            <!-- Landmark Sequence -->
+            <div class="panel-section">
+                <h3>Active Sequence</h3>
+                <div class="landmark-list" id="landmarkSequence">
+                    <!-- Javascript populated -->
+                </div>
+            </div>
+
+            <!-- Shortcut Cheat Sheet -->
+            <div class="panel-section">
+                <h3>Shortcuts</h3>
+                <table class="shortcut-table">
+                    <tr><td>Move Dot:</td><td>Drag with <kbd>Left Mouse</kbd></td></tr>
+                    <tr><td>Move Block:</td><td><kbd>Shift</kbd> + Drag any dot</td></tr>
+                    <tr><td>Shift All:</td><td><kbd>Ctrl</kbd> + <kbd>Arrow Keys</kbd></td></tr>
+                    <tr><td>Vertical Spacing:</td><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>+</kbd> / <kbd>-</kbd></td></tr>
+                    <tr><td>Scale Width:</td><td><kbd>Ctrl</kbd> + <kbd>[</kbd> / <kbd>]</kbd></td></tr>
+                    <tr><td>Scale Height:</td><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>[</kbd> / <kbd>]</kbd></td></tr>
+                    <tr><td>Zoom:</td><td><kbd>Mouse Scroll</kbd></td></tr>
+                    <tr><td>Pan View:</td><td>Hold <kbd>Right Click</kbd> and drag</td></tr>
+                </table>
+            </div>
+
+            <!-- Status Logs -->
+            <div class="panel-section">
+                <h3>Output Log</h3>
+                <div class="console-log" id="consoleLog">Welcome to CVMI Web Annotator.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. App Configuration and Constants
+        const LANDMARK_ORDER = [
+            ["C2", "SA", "C2 Superior-Anterior Corner"],
+            ["C2", "SP", "C2 Superior-Posterior Corner"],
+            ["C2", "IP", "C2 Inferior-Posterior Corner"],
+            ["C2", "IM", "C2 Inferior-Middle (Concavity Point)"],
+            ["C2", "IA", "C2 Inferior-Anterior Corner"],
+            ["C3", "SA", "C3 Superior-Anterior Corner"],
+            ["C3", "SP", "C3 Superior-Posterior Corner"],
+            ["C3", "IP", "C3 Inferior-Posterior Corner"],
+            ["C3", "IM", "C3 Inferior-Middle (Concavity Point)"],
+            ["C3", "IA", "C3 Inferior-Anterior Corner"],
+            ["C4", "SA", "C4 Superior-Anterior Corner"],
+            ["C4", "SP", "C4 Superior-Posterior Corner"],
+            ["C4", "IP", "C4 Inferior-Posterior Corner"],
+            ["C4", "IM", "C4 Inferior-Middle (Concavity Point)"],
+            ["C4", "IA", "C4 Inferior-Anterior Corner"],
+        ];
+
+        // Global State Variables
+        let currentDoctor = localStorage.getItem("cvmi_doctor_name") || "";
+        let isJumbledQueue = true; // Default to jumbled sequence per doctor
+        let rawImageFiles = [];
+        let activeQueue = [];
+
+        let currentImageIndex = -1;
+        let activeLandmarkIdx = 0;
+        let currentLandmarks = {};
+        let annotatedCache = new Set();
+        
+        // Image & Canvas elements
+        const cephImage = new Image();
+        const canvas = document.getElementById("cephCanvas");
+        const ctx = canvas.getContext("2d");
+        const container = document.getElementById("canvasContainer");
+
+        // Pan and Zoom matrices
+        let zoom = 1.0;
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let panStartX = 0;
+        let panStartY = 0;
+
+        let selectedLandmark = null;
+
+        // Local Storage Keys
+        const ENDPOINT_KEY = "cvmi_apps_script_url";
+        const DOCTOR_KEY = "cvmi_doctor_name";
+
+        function getDoctorCacheKey(imageName) {
+            const cleanDoc = (currentDoctor || "Unassigned").trim().replace(/\s+/g, "_");
+            return `cvmi_anno_${cleanDoc}_${imageName}`;
+        }
+
+        // 3. App Initialization
+        window.addEventListener("DOMContentLoaded", () => {
+            initUiComponents();
+            loadConfigUrl();
+            initDatasetList();
+            checkDoctorAuth();
+        });
+
+        function initDatasetList() {
+            rawImageFiles = [];
+            // Generates sequence of 414 images (includes the 14 new screenshots: 401.jpg to 414.jpg)
+            for (let i = 1; i <= 414; i++) {
+                rawImageFiles.push(String(i).padStart(3, '0') + ".jpg");
+            }
+        }
+
+        function checkDoctorAuth() {
+            if (!currentDoctor) {
+                document.getElementById("doctorModal").style.display = "flex";
+                document.getElementById("docNameInput").focus();
+            } else {
+                document.getElementById("doctorModal").style.display = "none";
+                document.getElementById("docNameDisplay").innerText = currentDoctor;
+                buildActiveQueue();
+            }
+        }
+
+        function handleDoctorLogin(e) {
+            e.preventDefault();
+            const inputVal = document.getElementById("docNameInput").value.trim();
+            if (!inputVal) return;
+            
+            currentDoctor = inputVal;
+            localStorage.setItem(DOCTOR_KEY, currentDoctor);
+            document.getElementById("docNameDisplay").innerText = currentDoctor;
+            document.getElementById("doctorModal").style.display = "none";
+            
+            log(`Doctor logged in: ${currentDoctor}`);
+            buildActiveQueue();
+        }
+
+        function switchDoctor() {
+            document.getElementById("docNameInput").value = currentDoctor;
+            document.getElementById("doctorModal").style.display = "flex";
+            document.getElementById("docNameInput").focus();
+        }
+
+        // Seeded Deterministic Shuffle algorithm per doctor name
+        function seedShuffle(array, seedStr) {
+            let hash = 0;
+            for (let i = 0; i < seedStr.length; i++) {
+                hash = seedStr.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const shuffled = [...array];
+            let seed = Math.abs(hash) || 12345;
+            const random = () => {
+                seed = (seed * 9301 + 49297) % 233280;
+                return seed / 233280;
+            };
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function buildActiveQueue() {
+            if (isJumbledQueue) {
+                activeQueue = seedShuffle(rawImageFiles, currentDoctor || "default");
+            } else {
+                activeQueue = [...rawImageFiles];
+            }
+            
+            // Reload cached annotated set for current doctor
+            annotatedCache.clear();
+            const cachePrefix = `cvmi_anno_${(currentDoctor || "Unassigned").trim().replace(/\s+/g, "_")}_`;
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith(cachePrefix)) {
+                    annotatedCache.add(key.replace(cachePrefix, ""));
+                }
+            }
+            
+            refreshImageList();
+            updateProgressText();
+            selectImage(0);
+        }
+
+        function toggleQueueMode() {
+            isJumbledQueue = !isJumbledQueue;
+            const btn = document.getElementById("btnToggleQueue");
+            if (isJumbledQueue) {
+                btn.innerText = "🔀 Jumbled";
+                btn.style.color = "var(--accent)";
+                log("Switched to Jumbled Queue mode.");
+            } else {
+                btn.innerText = "🔢 Sequential";
+                btn.style.color = "var(--text-main)";
+                log("Switched to Sequential Queue mode.");
+            }
+            buildActiveQueue();
+        }
+
+        function initUiComponents() {
+            document.getElementById("appsScriptUrl").addEventListener("input", (e) => {
+                localStorage.setItem(ENDPOINT_KEY, e.target.value.trim());
+            });
+
+            document.getElementById("searchImg").addEventListener("input", (e) => {
+                filterImageList(e.target.value.toLowerCase());
+            });
+
+            document.getElementById("btnSwitchDoc").addEventListener("click", switchDoctor);
+            document.getElementById("btnToggleQueue").addEventListener("click", toggleQueueMode);
+
+            document.getElementById("btnSave").addEventListener("click", saveToGoogleDrive);
+            document.getElementById("btnReset").addEventListener("click", resetTemplate);
+            document.getElementById("btnPrev").addEventListener("click", () => {
+                if (currentImageIndex > 0) selectImage(currentImageIndex - 1);
+            });
+            document.getElementById("btnNext").addEventListener("click", () => {
+                if (currentImageIndex < activeQueue.length - 1) selectImage(currentImageIndex + 1);
+            });
+
+            canvas.addEventListener("mousedown", handleMouseDown);
+            canvas.addEventListener("mousemove", handleMouseMove);
+            canvas.addEventListener("mouseup", handleMouseUp);
+            canvas.addEventListener("wheel", handleWheel, { passive: false });
+            canvas.addEventListener("contextmenu", e => e.preventDefault());
+
+            container.addEventListener("keydown", handleKeyDown);
+            
+            const containerSeq = document.getElementById("landmarkSequence");
+            containerSeq.innerHTML = "";
+            LANDMARK_ORDER.forEach((item, idx) => {
+                const vert = item[0];
+                const name = item[1];
+                const tagClass = vert.toLowerCase();
+                
+                const row = document.createElement("div");
+                row.className = "landmark-row";
+                row.id = `row-${idx}`;
+                row.innerHTML = `
+                    <div>
+                        <span class="landmark-tag tag-${tagClass}">${vert}</span>
+                        <span style="font-weight: 500; margin-left: 6px;">${name}</span>
+                    </div>
+                    <span class="check-icon">✔</span>
+                `;
+                containerSeq.appendChild(row);
+            });
+        }
+
+        function loadConfigUrl() {
+            const deployedUrl = "https://script.google.com/macros/s/AKfycbyJnMAxwasvQQLMgKpdA2d2kMTSElXWP4Hs0OpszudcrhukpAzCHfzSyWVFRuIoKxBl/exec";
+            document.getElementById("appsScriptUrl").value = deployedUrl;
+            localStorage.setItem(ENDPOINT_KEY, deployedUrl);
+        }
+
+        function updateProgressText() {
+            document.getElementById("progressLbl").innerText = `${annotatedCache.size} / ${rawImageFiles.length} Labeled`;
+        }
+
+        function log(message, isError = false) {
+            const consoleBox = document.getElementById("consoleLog");
+            const time = new Date().toLocaleTimeString();
+            consoleBox.innerHTML += `<div style="color: ${isError ? '#ff8080' : '#32d74b'}">[${time}] ${message}</div>`;
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        // 4. Image Loading and Navigation
+        function refreshImageList() {
+            const listDiv = document.getElementById("imageList");
+            listDiv.innerHTML = "";
+            
+            activeQueue.forEach((name, idx) => {
+                const item = document.createElement("div");
+                item.className = "image-item";
+                if (idx === currentImageIndex) item.classList.add("active");
+                item.addEventListener("click", () => selectImage(idx));
+                
+                const isAnnotated = annotatedCache.has(name);
+                item.innerHTML = `
+                    <span>${name}</span>
+                    <span class="status-dot ${isAnnotated ? 'annotated' : ''}"></span>
+                `;
+                listDiv.appendChild(item);
+            });
+        }
+
+        function filterImageList(query) {
+            const items = document.querySelectorAll(".image-item");
+            items.forEach((item, idx) => {
+                const name = activeQueue[idx];
+                if (name.includes(query)) {
+                    item.style.display = "flex";
+                } else {
+                    item.style.display = "none";
+                }
+            });
+        }
+
+        function selectImage(index) {
+            if (index < 0 || index >= activeQueue.length) return;
+            
+            currentImageIndex = index;
+            const imageName = activeQueue[index];
+            
+            const items = document.querySelectorAll(".image-item");
+            items.forEach((item, idx) => {
+                if (idx === index) item.classList.add("active");
+                else item.classList.remove("active");
+            });
+
+            log(`Loading image [${index + 1}/${activeQueue.length}]: ${imageName}`);
+            
+            cephImage.src = `images/${imageName}`;
+            cephImage.onload = async () => {
+                resetZoomPan();
+                await loadLandmarkData(imageName);
+                draw();
+            };
+
+            cephImage.onerror = () => {
+                log(`Failed to load images/${imageName}. Please verify file exists in 'images' folder.`, true);
+            };
+        }
+
+        async function loadLandmarkData(imageName) {
+            activeLandmarkIdx = 0;
+            currentLandmarks = {};
+            
+            // 1. Try loading cached landmarks for current doctor in localStorage
+            const localSaved = localStorage.getItem(getDoctorCacheKey(imageName));
+            if (localSaved) {
+                try {
+                    const data = JSON.parse(localSaved);
+                    currentLandmarks = data.landmarks;
+                    activeLandmarkIdx = LANDMARK_ORDER.length;
+                    log(`Loaded coordinates from session cache for ${currentDoctor}.`);
+                    updateUiState();
+                    return;
+                } catch(e) {}
+            }
+            
+            // 2. Try fetching pre-existing landmarks from local files
+            try {
+                const response = await fetch(`images/${imageName}_landmarks.json`);
+                if (response.ok) {
+                    const data = await response.json();
+                    currentLandmarks = data.landmarks;
+                    activeLandmarkIdx = LANDMARK_ORDER.length;
+                    log(`Loaded pre-existing coordinates from disk: ${imageName}_landmarks.json`);
+                    updateUiState();
+                    return;
+                }
+            } catch (err) {}
+            
+            // 3. Fallback to placing default template on right side
+            placeDefaultLayout();
+            updateUiState();
+        }
+
+        function placeDefaultLayout() {
+            const h = cephImage.height;
+            const w = cephImage.width;
+            
+            const cx = Math.floor(w * 0.615);
+            const cy = Math.floor(h * 0.635);
+            const bw = Math.floor(w * 0.065);
+            const bh = Math.floor(h * 0.055);
+            const spacing = Math.floor(h * 0.05);
+            
+            currentLandmarks = {
+                "C2": createVertebraPoints(cx, cy - bh - spacing, bw, bh, true),
+                "C3": createVertebraPoints(cx, cy, bw, bh, false),
+                "C4": createVertebraPoints(cx, cy + bh + spacing, bw, bh, false)
+            };
+            activeLandmarkIdx = LANDMARK_ORDER.length;
+            log(`Default vertebra templates pre-placed. Adjust coordinate dots.`);
+        }
+
+        function createVertebraPoints(cx, cy, bw, bh, isC2) {
+            const x_left = cx - Math.floor(bw / 2);
+            const x_right = cx + Math.floor(bw / 2);
+            
+            if (isC2) {
+                const y_top_left = cy - Math.floor(bh * 0.6);
+                const y_top_right = cy - Math.floor(bh * 0.3);
+                const y_bottom = cy + Math.floor(bh / 2);
+                const y_concave = y_bottom - Math.floor(bh * 0.12);
+                return {
+                    "SA": [x_right, y_top_right],
+                    "SP": [x_left, y_top_left],
+                    "IA": [x_right, y_bottom],
+                    "IP": [x_left, y_bottom],
+                    "IM": [cx, y_concave]
+                };
+            } else {
+                const y_top = cy - Math.floor(bh / 2);
+                const y_bottom = cy + Math.floor(bh / 2);
+                const y_concave = y_bottom - Math.floor(bh * 0.15);
+                return {
+                    "SA": [x_right, y_top],
+                    "SP": [x_left, y_top],
+                    "IA": [x_right, y_bottom],
+                    "IP": [x_left, y_bottom],
+                    "IM": [cx, y_concave]
+                };
+            }
+        }
+
+        function updateUiState() {
+            for (let i = 0; i < LANDMARK_ORDER.length; i++) {
+                const row = document.getElementById(`row-${i}`);
+                row.className = "landmark-row";
+                
+                if (i === activeLandmarkIdx) {
+                    row.classList.add("active");
+                }
+                
+                const vert = LANDMARK_ORDER[i][0];
+                const name = LANDMARK_ORDER[i][1];
+                if (currentLandmarks[vert] && currentLandmarks[vert][name]) {
+                    row.classList.add("done");
+                }
+            }
+
+            const instruction = document.getElementById("instructionTxt");
+            if (activeLandmarkIdx < LANDMARK_ORDER.length) {
+                const item = LANDMARK_ORDER[activeLandmarkIdx];
+                instruction.innerText = `Click on the image to place landmark:\n→ ${item[0]} ${item[1]}\n(${item[2]})`;
+                instruction.style.borderColor = "var(--accent)";
+                instruction.style.color = "var(--accent-hover)";
+            } else {
+                instruction.innerText = "All 15 landmarks placed!\nAdjust points by dragging them with your mouse, then click Save.";
+                instruction.style.borderColor = "var(--success)";
+                instruction.style.color = "var(--success)";
+            }
+        }
+
+        function resetTemplate() {
+            if (currentImageIndex < 0) return;
+            placeDefaultLayout();
+            updateUiState();
+            draw();
+        }
+
+        function resetZoomPan() {
+            if (!container) return;
+            canvas.width = container.clientWidth || 800;
+            canvas.height = container.clientHeight || 600;
+            
+            if (!cephImage.width || !cephImage.height) return;
+            
+            const containerWidth = canvas.width;
+            const containerHeight = canvas.height;
+            
+            const scaleX = (containerWidth * 0.95) / cephImage.width;
+            const scaleY = (containerHeight * 0.95) / cephImage.height;
+            zoom = Math.min(scaleX, scaleY);
+            
+            panX = (containerWidth - cephImage.width * zoom) / 2;
+            panY = (containerHeight - cephImage.height * zoom) / 2;
+        }
+
+        window.addEventListener("resize", () => {
+            if (cephImage.width && cephImage.height) {
+                resetZoomPan();
+                draw();
+            }
+        });
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            ctx.translate(panX, panY);
+            ctx.scale(zoom, zoom);
+            
+            ctx.drawImage(cephImage, 0, 0);
+
+            drawVertebraPaths();
+            drawHandles();
+            
+            ctx.restore();
+        }
+
+        function drawVertebraPaths() {
+            const verts = ["C2", "C3", "C4"];
+            const colors = {
+                "C2": "rgb(255, 80, 80)",
+                "C3": "rgb(80, 255, 80)",
+                "C4": "rgb(80, 180, 255)"
+            };
+            const brushColors = {
+                "C2": "rgba(255, 80, 80, 0.18)",
+                "C3": "rgba(80, 255, 80, 0.18)",
+                "C4": "rgba(80, 180, 255, 0.18)"
+            };
+
+            verts.forEach(vert => {
+                if (!currentLandmarks[vert]) return;
+                
+                const pts = currentLandmarks[vert];
+                const required = ["SA", "SP", "IP", "IM", "IA"];
+                if (!required.every(k => pts[k])) return;
+                
+                const p_SA = pts["SA"];
+                const p_SP = pts["SP"];
+                const p_IP = pts["IP"];
+                const p_IM = pts["IM"];
+                const p_IA = pts["IA"];
+                
+                ctx.beginPath();
+                ctx.moveTo(p_IP[0], p_IP[1]);
+                
+                const ctrl1_x = (p_IP[0] + p_IM[0]) / 2;
+                const ctrl1_y = p_IM[1];
+                const ctrl2_x = (p_IM[0] + p_IA[0]) / 2;
+                const ctrl2_y = p_IM[1];
+                ctx.bezierCurveTo(ctrl1_x, ctrl1_y, ctrl2_x, ctrl2_y, p_IA[0], p_IA[1]);
+                
+                ctx.lineTo(p_SA[0], p_SA[1]);
+                
+                if (vert === "C2") {
+                    const body_h = Math.abs(p_SA[1] - p_IA[1]);
+                    const peak_x = (p_SA[0] + p_SP[0]) / 2;
+                    const peak_y = Math.min(p_SA[1], p_SP[1]) - body_h * 1.1;
+                    ctx.quadraticCurveTo((p_SA[0] + peak_x) / 2, peak_y, peak_x, peak_y);
+                    ctx.quadraticCurveTo((p_SP[0] + peak_x) / 2, peak_y, p_SP[0], p_SP[1]);
+                } else {
+                    ctx.lineTo(p_SP[0], p_SP[1]);
+                }
+                
+                ctx.lineTo(p_IP[0], p_IP[1]);
+                
+                ctx.strokeStyle = colors[vert];
+                ctx.lineWidth = 2.5 / zoom;
+                ctx.stroke();
+                
+                ctx.fillStyle = brushColors[vert];
+                ctx.fill();
+            });
+        }
+
+        function drawHandles() {
+            LANDMARK_ORDER.forEach((item, idx) => {
+                const vert = item[0];
+                const name = item[1];
+                if (!currentLandmarks[vert] || !currentLandmarks[vert][name]) return;
+                
+                const pt = currentLandmarks[vert][name];
+                
+                const radius = 6 / zoom;
+                ctx.beginPath();
+                ctx.arc(pt[0], pt[1], radius, 0, 2 * Math.PI);
+                
+                const colors = {
+                    "C2": "rgb(255, 80, 80)",
+                    "C3": "rgb(80, 255, 80)",
+                    "C4": "rgb(80, 180, 255)"
+                };
+                
+                if (selectedLandmark && selectedLandmark.vertebra === vert && selectedLandmark.name === name) {
+                    ctx.fillStyle = "#ffff00";
+                    ctx.arc(pt[0], pt[1], radius * 1.2, 0, 2 * Math.PI);
+                } else {
+                    ctx.fillStyle = colors[vert];
+                }
+                
+                ctx.fill();
+                ctx.strokeStyle = "#ffffff";
+                ctx.lineWidth = 1.5 / zoom;
+                ctx.stroke();
+            });
+        }
+
+        function handleMouseDown(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            const imgX = (mouseX - panX) / zoom;
+            const imgY = (mouseY - panY) / zoom;
+
+            if (e.button === 2) {
+                isPanning = true;
+                panStartX = e.clientX - panX;
+                panStartY = e.clientY - panY;
+                canvas.style.cursor = "grabbing";
+                return;
+            }
+
+            if (e.button === 0) {
+                if (activeLandmarkIdx < LANDMARK_ORDER.length) {
+                    const item = LANDMARK_ORDER[activeLandmarkIdx];
+                    const vert = item[0];
+                    const name = item[1];
+                    
+                    if (!currentLandmarks[vert]) currentLandmarks[vert] = {};
+                    currentLandmarks[vert][name] = [Math.round(imgX), Math.round(imgY)];
+                    
+                    activeLandmarkIdx++;
+                    updateUiState();
+                    draw();
+                    return;
+                }
+                
+                const hitRadius = 12 / zoom;
+                LANDMARK_ORDER.forEach(item => {
+                    const vert = item[0];
+                    const name = item[1];
+                    if (currentLandmarks[vert] && currentLandmarks[vert][name]) {
+                        const pt = currentLandmarks[vert][name];
+                        const dist = Math.sqrt(Math.pow(pt[0] - imgX, 2) + Math.pow(pt[1] - imgY, 2));
+                        if (dist < hitRadius) {
+                            selectedLandmark = { vertebra: vert, name: name, startX: imgX, startY: imgY };
+                        }
+                    }
+                });
+                
+                if (selectedLandmark) draw();
+            }
+        }
+
+        function handleMouseMove(e) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const imgX = (mouseX - panX) / zoom;
+            const imgY = (mouseY - panY) / zoom;
+
+            if (isPanning) {
+                panX = e.clientX - panStartX;
+                panY = e.clientY - panStartY;
+                draw();
+                return;
+            }
+
+            if (selectedLandmark && e.buttons === 1) {
+                const vert = selectedLandmark.vertebra;
+                const name = selectedLandmark.name;
+                
+                const oldX = currentLandmarks[vert][name][0];
+                const oldY = currentLandmarks[vert][name][1];
+                const deltaX = imgX - oldX;
+                const deltaY = imgY - oldY;
+
+                if (e.shiftKey) {
+                    Object.keys(currentLandmarks[vert]).forEach(ptName => {
+                        currentLandmarks[vert][ptName][0] = Math.round(currentLandmarks[vert][ptName][0] + deltaX);
+                        currentLandmarks[vert][ptName][1] = Math.round(currentLandmarks[vert][ptName][1] + deltaY);
+                    });
+                } else {
+                    currentLandmarks[vert][name] = [Math.round(imgX), Math.round(imgY)];
+                }
+                
+                draw();
+            }
+        }
+
+        function handleMouseUp(e) {
+            if (e.button === 2) {
+                isPanning = false;
+                canvas.style.cursor = "crosshair";
+            }
+            if (selectedLandmark) {
+                selectedLandmark = null;
+                draw();
+            }
+        }
+
+        function handleWheel(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const imgX = (mouseX - panX) / zoom;
+            const imgY = (mouseY - panY) / zoom;
+
+            const scaleFactor = 1.15;
+            if (e.deltaY < 0) {
+                zoom *= scaleFactor;
+            } else {
+                zoom /= scaleFactor;
+            }
+
+            panX = mouseX - imgX * zoom;
+            panY = mouseY - imgY * zoom;
+            
+            draw();
+        }
+
+        function handleKeyDown(e) {
+            if (currentImageIndex < 0) return;
+            
+            let dx = 0;
+            let dy = 0;
+            let spacingFactor = 1.0;
+            let scaleW = 1.0;
+            let scaleH = 1.0;
+            
+            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+                e.preventDefault();
+            }
+
+            if (e.ctrlKey) {
+                if (e.key === "ArrowUp") dy = -2;
+                else if (e.key === "ArrowDown") dy = 2;
+                else if (e.key === "ArrowLeft") dx = -2;
+                else if (e.key === "ArrowRight") dx = 2;
+                
+                if (e.shiftKey) {
+                    if (e.key === "+" || e.key === "=") spacingFactor = 1.03;
+                    if (e.key === "-" || e.key === "_") spacingFactor = 0.97;
+                }
+                
+                if (e.key === "]") scaleW = 1.03;
+                if (e.key === "[") scaleW = 0.97;
+                
+                if (e.shiftKey) {
+                    if (e.key === "}") scaleH = 1.03;
+                    if (e.key === "{") scaleH = 0.97;
+                }
+            }
+
+            if (dx !== 0 || dy !== 0) {
+                Object.keys(currentLandmarks).forEach(vert => {
+                    Object.keys(currentLandmarks[vert]).forEach(name => {
+                        currentLandmarks[vert][name][0] += dx;
+                        currentLandmarks[vert][name][1] += dy;
+                    });
+                });
+                draw();
+            }
+            
+            if (spacingFactor !== 1.0) {
+                adjustSpacing(spacingFactor);
+            }
+            
+            if (scaleW !== 1.0 || scaleH !== 1.0) {
+                adjustBoxScale(scaleW, scaleH);
+            }
+        }
+
+        function adjustSpacing(factor) {
+            const required = ["C2", "C3", "C4"];
+            if (!required.every(k => currentLandmarks[k])) return;
+            
+            const c3_ys = Object.values(currentLandmarks["C3"]).map(pt => pt[1]);
+            const c3_cy = c3_ys.reduce((a, b) => a + b, 0) / c3_ys.length;
+            
+            Object.keys(currentLandmarks["C2"]).forEach(name => {
+                const y = currentLandmarks["C2"][name][1];
+                currentLandmarks["C2"][name][1] = Math.round(c3_cy + (y - c3_cy) * factor);
+            });
+            
+            Object.keys(currentLandmarks["C4"]).forEach(name => {
+                const y = currentLandmarks["C4"][name][1];
+                currentLandmarks["C4"][name][1] = Math.round(c3_cy + (y - c3_cy) * factor);
+            });
+            draw();
+        }
+
+        function adjustBoxScale(w_factor, h_factor) {
+            Object.keys(currentLandmarks).forEach(vert => {
+                const pts = currentLandmarks[vert];
+                const xs = Object.values(pts).map(pt => pt[0]);
+                const ys = Object.values(pts).map(pt => pt[1]);
+                
+                const vc_x = xs.reduce((a,b) => a+b, 0) / xs.length;
+                const vc_y = ys.reduce((a,b) => a+b, 0) / ys.length;
+                
+                Object.keys(pts).forEach(name => {
+                    const x = pts[name][0];
+                    const y = pts[name][1];
+                    pts[name][0] = Math.round(vc_x + (x - vc_x) * w_factor);
+                    pts[name][1] = Math.round(vc_y + (y - vc_y) * h_factor);
+                });
+            });
+            draw();
+        }
+
+        // 8. One-Click Save API Request (Google Drive Upload)
+        async function saveToGoogleDrive() {
+            if (currentImageIndex < 0) return;
+            
+            const imageName = activeQueue[currentImageIndex];
+            const urlInput = document.getElementById("appsScriptUrl").value.trim();
+            
+            if (!urlInput) {
+                alert("Please configure your Google Apps Script Web App URL at the top first!");
+                log("Error: Google Apps Script endpoint URL is empty.", true);
+                return;
+            }
+
+            let totalPlaced = 0;
+            Object.keys(currentLandmarks).forEach(v => {
+                totalPlaced += Object.keys(currentLandmarks[v]).length;
+            });
+
+            if (totalPlaced < 15) {
+                alert(`Cannot save! You only placed ${totalPlaced} of 15 landmarks. Please place all 15 circles.`);
+                return;
+            }
+
+            log(`Uploading annotations for ${imageName} (${currentDoctor}) to Google Drive...`);
+            document.getElementById("btnSave").disabled = true;
+            document.getElementById("btnSave").innerText = "Saving to Google Drive...";
+
+            const payload = {
+                doctor_name: currentDoctor || "Unassigned",
+                image_path: imageName,
+                landmarks: currentLandmarks
+            };
+
+            // Save in Doctor-specific browser local storage cache
+            localStorage.setItem(getDoctorCacheKey(imageName), JSON.stringify(payload));
+            annotatedCache.add(imageName);
+            refreshImageList();
+            updateProgressText();
+
+            try {
+                const response = await fetch(urlInput, {
+                    method: "POST",
+                    mode: "cors",
+                    headers: {
+                        "Content-Type": "text/plain"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                if (result.status === "success") {
+                    log(`Success! Annotations saved to Google Drive under folder '${result.doctor}'.`);
+                    alert(`Saved successfully to Google Drive!\nDoctor Folder: ${result.doctor}\nFilename: ${result.filename}`);
+                    
+                    if (currentImageIndex < activeQueue.length - 1) {
+                        selectImage(currentImageIndex + 1);
+                    }
+                } else {
+                    log(`API Error: ${result.message}`, true);
+                    alert(`Failed to save: ${result.message}`);
+                }
+            } catch (err) {
+                log(`Network Connection Error: ${err.message}`, true);
+                alert(`Saved locally for ${currentDoctor}!\n(Google Apps Script connection check: ${err.message})`);
+            } finally {
+                document.getElementById("btnSave").disabled = false;
+                document.getElementById("btnSave").innerText = "Save to Google Drive";
+            }
+        }
+    </script>
+</body>
+</html>
