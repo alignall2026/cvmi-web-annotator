@@ -956,6 +956,8 @@
             activeLandmarkIdx = LANDMARK_ORDER.length;
             isDefaultTemplate = true;
             log(`Default vertebra templates pre-placed. Adjust coordinate dots to evaluate stage.`);
+        }
+
         function createVertebraPoints(cx, cy, bw, bh, isC2) {
             const x_left = cx - Math.floor(bw / 2);
             const x_right = cx + Math.floor(bw / 2);
