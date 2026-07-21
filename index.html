@@ -846,6 +846,10 @@
         function selectImage(index) {
             if (index < 0 || index >= activeQueue.length) return;
             
+            if (currentImageIndex >= 0) {
+                triggerAutoSave(true);
+            }
+
             currentImageIndex = index;
             const imageName = activeQueue[index];
             
@@ -1151,6 +1155,7 @@
             placeDefaultLayout();
             updateUiState();
             draw();
+            triggerAutoSave(true);
         }
 
         function resetZoomPan() {
@@ -1312,6 +1317,7 @@
                     activeLandmarkIdx++;
                     updateUiState();
                     draw();
+                    triggerAutoSave(true);
                     return;
                 }
                 
@@ -1434,6 +1440,7 @@
                 }
                 
                 draw();
+                triggerAutoSave(false);
             }
         }
 
@@ -1446,6 +1453,7 @@
                 selectedLandmark = null;
                 updateUiState();
                 draw();
+                triggerAutoSave(true);
             }
         }
 
@@ -1512,14 +1520,17 @@
                     });
                 });
                 draw();
+                triggerAutoSave(false);
             }
             
             if (spacingFactor !== 1.0) {
                 adjustSpacing(spacingFactor);
+                triggerAutoSave(false);
             }
             
             if (scaleW !== 1.0 || scaleH !== 1.0) {
                 adjustBoxScale(scaleW, scaleH);
+                triggerAutoSave(false);
             }
         }
 
@@ -1559,6 +1570,70 @@
                 });
             });
             draw();
+        }
+
+        let autoSaveTimer = null;
+        let isAutoSaving = false;
+
+        function triggerAutoSave(immediate = false) {
+            if (currentImageIndex < 0 || !activeQueue[currentImageIndex]) return;
+            const imageName = activeQueue[currentImageIndex];
+
+            // 1. Instantly save in local storage cache
+            const payload = {
+                doctor_name: currentDoctor || "Dr. Harish Kanna",
+                image_path: imageName,
+                landmarks: currentLandmarks,
+                saved_at: new Date().toISOString()
+            };
+            localStorage.setItem(getDoctorCacheKey(imageName), JSON.stringify(payload));
+            annotatedCache.add(imageName);
+            refreshImageList();
+            updateProgressText();
+
+            // 2. Queue background upload to Google Drive
+            if (autoSaveTimer) clearTimeout(autoSaveTimer);
+
+            if (immediate) {
+                syncToDriveInBackground(imageName, payload);
+            } else {
+                autoSaveTimer = setTimeout(() => {
+                    syncToDriveInBackground(imageName, payload);
+                }, 500);
+            }
+        }
+
+        async function syncToDriveInBackground(imageName, payload) {
+            const urlInput = getAppsScriptUrl();
+            if (!urlInput || isAutoSaving) return;
+
+            const saveBtn = document.getElementById("btnSave");
+            if (saveBtn) saveBtn.innerText = "☁️ Auto-Saving...";
+
+            isAutoSaving = true;
+            try {
+                const response = await fetch(urlInput, {
+                    method: "POST",
+                    mode: "cors",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (result.status === "success") {
+                    log(`⚡ Auto-saved ${imageName} to Google Drive (${currentDoctor}).`);
+                    if (saveBtn) {
+                        saveBtn.innerText = "✓ Auto-Saved to Drive";
+                        setTimeout(() => {
+                            if (saveBtn) saveBtn.innerText = "Save to Google Drive";
+                        }, 2000);
+                    }
+                }
+            } catch (err) {
+                log(`⚡ Auto-saved locally for ${currentDoctor}.`, false);
+                if (saveBtn) saveBtn.innerText = "Save to Google Drive";
+            } finally {
+                isAutoSaving = false;
+            }
         }
 
         function getAppsScriptUrl() {
