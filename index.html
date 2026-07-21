@@ -942,15 +942,13 @@
             activeLandmarkIdx = LANDMARK_ORDER.length;
             isDefaultTemplate = true;
             log(`Default vertebra templates pre-placed. Adjust coordinate dots to evaluate stage.`);
-        }
-
         function createVertebraPoints(cx, cy, bw, bh, isC2) {
             const x_left = cx - Math.floor(bw / 2);
             const x_right = cx + Math.floor(bw / 2);
             
             if (isC2) {
-                const y_top_left = cy - Math.floor(bh * 0.6);
-                const y_top_right = cy - Math.floor(bh * 0.3);
+                const y_top_left = cy - Math.floor(bh * 0.5);
+                const y_top_right = cy - Math.floor(bh * 0.2);
                 const y_bottom = cy + Math.floor(bh / 2);
                 const y_concave = y_bottom - Math.floor(bh * 0.12);
                 return {
@@ -961,12 +959,14 @@
                     "IM": [cx, y_concave]
                 };
             } else {
-                const y_top = cy - Math.floor(bh / 2);
+                // Trapezoidal shape (CS1/CS2 wedge of cheese: posterior height > anterior height)
+                const y_top_left = cy - Math.floor(bh * 0.6);
+                const y_top_right = cy - Math.floor(bh * 0.2);
                 const y_bottom = cy + Math.floor(bh / 2);
-                const y_concave = y_bottom - Math.floor(bh * 0.15);
+                const y_concave = y_bottom; // Flat inferior border by default!
                 return {
-                    "SA": [x_right, y_top],
-                    "SP": [x_left, y_top],
+                    "SA": [x_right, y_top_right],
+                    "SP": [x_left, y_top_left],
                     "IA": [x_right, y_bottom],
                     "IP": [x_left, y_bottom],
                     "IM": [cx, y_concave]
