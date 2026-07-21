@@ -441,16 +441,16 @@
 <body>
 
     <!-- Doctor Login Modal Gate -->
-    <div class="modal-overlay" id="doctorModal">
+    <div class="modal-overlay" id="doctorModal" style="display: none;">
         <div class="modal-card">
-            <h2 style="font-size: 16px; margin-bottom: 8px; color: var(--accent); font-weight: 600;">Doctor Identification</h2>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4;">
-                Enter your Doctor Name / ID to launch your personalized annotation session. Annotations will save directly to your designated Google Drive folder.
+            <h2 style="font-size: 18px; margin-bottom: 8px; color: var(--accent); font-weight: 600;">Doctor Login</h2>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.4;">
+                Enter your Doctor Name / ID to access your annotation queue and sync coordinates to Google Drive.
             </p>
             <form id="docLoginForm" onsubmit="handleDoctorLogin(event)">
-                <input type="text" id="docNameInput" placeholder="e.g. Dr. Smith" required
-                       style="width:100%; padding:10px 12px; font-size:13px; background:var(--bg-base); border:1px solid var(--border-color); color:var(--text-main); border-radius:4px; margin-bottom:16px; outline:none;">
-                <button type="submit" class="btn">Start Session</button>
+                <input type="text" id="docNameInput" placeholder="Dr. Harish Kanna" value="Dr. Harish Kanna" required
+                       style="width:100%; padding:11px 14px; font-size:14px; background:var(--bg-base); border:1px solid var(--border-color); color:var(--text-main); border-radius:6px; margin-bottom:16px; outline:none; text-align:center;">
+                <button type="submit" class="btn" style="width:100%; padding:11px; font-size:14px; font-weight:600;">Enter Application</button>
             </form>
         </div>
     </div>
@@ -461,11 +461,11 @@
         
         <div style="display: flex; align-items: center; gap: 10px;">
             <div class="doctor-badge">
-                <span id="docNameDisplay" style="color: var(--accent); font-weight: 600;">Dr. Unassigned</span>
+                <span id="docNameDisplay" style="color: var(--accent); font-weight: 600;">Dr. Harish Kanna</span>
                 <button class="btn btn-outline" id="btnSwitchDoc" style="margin-top:0; padding:2px 8px; font-size:11px;">Switch</button>
             </div>
             <button class="btn btn-outline" id="btnToggleQueue" style="margin-top:0; padding:4px 8px; font-size:11px;">🔀 Jumbled</button>
-            <div style="font-size: 12px; white-space: nowrap;" id="progressLbl">0 / 400 Labeled</div>
+            <div style="font-size: 12px; white-space: nowrap;" id="progressLbl">0 / 414 Labeled</div>
         </div>
     </header>
 
@@ -533,18 +533,6 @@
                 <h3>Output Log</h3>
                 <div class="console-log" id="consoleLog">Welcome to CVMI Web Annotator.</div>
             </div>
-        </div>
-    </div>
-
-    <!-- Doctor Authentication Modal -->
-    <div id="doctorModal" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center;">
-        <div style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 28px; width: 360px; max-width: 90%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-            <h2 style="color: var(--accent); margin-bottom: 8px; font-size: 20px;">Doctor Login</h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Enter your name to load and track your assigned annotation queue.</p>
-            <form id="docLoginForm">
-                <input type="text" id="docNameInput" placeholder="Dr. Harish Kanna" required style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-dark); color: #ffffff; font-size: 14px; margin-bottom: 16px; box-sizing: border-box; text-align: center;" />
-                <button type="submit" class="btn" style="width: 100%; padding: 12px; font-size: 14px; font-weight: 600;">Enter App</button>
-            </form>
         </div>
     </div>
 
@@ -627,33 +615,44 @@
 
         function checkDoctorAuth() {
             if (!currentDoctor) {
-                document.getElementById("doctorModal").style.display = "flex";
-                document.getElementById("docNameInput").focus();
-            } else {
-                document.getElementById("doctorModal").style.display = "none";
-                document.getElementById("docNameDisplay").innerText = currentDoctor;
-                buildActiveQueue();
+                currentDoctor = "Dr. Harish Kanna";
+                localStorage.setItem(DOCTOR_KEY, currentDoctor);
             }
+            const modal = document.getElementById("doctorModal");
+            if (modal) modal.style.display = "none";
+            const nameEl = document.getElementById("docNameDisplay");
+            if (nameEl) nameEl.innerText = currentDoctor;
+            const inputEl = document.getElementById("docNameInput");
+            if (inputEl) inputEl.value = currentDoctor;
+            buildActiveQueue();
         }
 
         function handleDoctorLogin(e) {
-            e.preventDefault();
-            const inputVal = document.getElementById("docNameInput").value.trim();
-            if (!inputVal) return;
+            if (e) e.preventDefault();
+            const inputEl = document.getElementById("docNameInput");
+            const inputVal = inputEl ? inputEl.value.trim() : "";
+            currentDoctor = inputVal || "Dr. Harish Kanna";
             
-            currentDoctor = inputVal;
             localStorage.setItem(DOCTOR_KEY, currentDoctor);
-            document.getElementById("docNameDisplay").innerText = currentDoctor;
-            document.getElementById("doctorModal").style.display = "none";
+            const nameEl = document.getElementById("docNameDisplay");
+            if (nameEl) nameEl.innerText = currentDoctor;
+            const modal = document.getElementById("doctorModal");
+            if (modal) modal.style.display = "none";
             
             log(`Doctor logged in: ${currentDoctor}`);
             buildActiveQueue();
         }
 
         function switchDoctor() {
-            document.getElementById("docNameInput").value = currentDoctor;
-            document.getElementById("doctorModal").style.display = "flex";
-            document.getElementById("docNameInput").focus();
+            const inputEl = document.getElementById("docNameInput");
+            if (inputEl) {
+                inputEl.value = currentDoctor || "Dr. Harish Kanna";
+            }
+            const modal = document.getElementById("doctorModal");
+            if (modal) {
+                modal.style.display = "flex";
+                if (inputEl) inputEl.focus();
+            }
         }
 
         // Seeded Deterministic Shuffle algorithm per doctor name
@@ -796,7 +795,8 @@
 
         function loadConfigUrl() {
             const deployedUrl = "https://script.google.com/macros/s/AKfycbyJnMAxwasvQQLMgKpdA2d2kMTSElXWP4Hs0OpszudcrhukpAzCHfzSyWVFRuIoKxBl/exec";
-            document.getElementById("appsScriptUrl").value = deployedUrl;
+            const el = document.getElementById("appsScriptUrl");
+            if (el) el.value = deployedUrl;
             localStorage.setItem(ENDPOINT_KEY, deployedUrl);
         }
 
