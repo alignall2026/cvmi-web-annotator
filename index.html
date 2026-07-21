@@ -413,11 +413,6 @@
     <header>
         <h1><span>CVMI</span> Web Annotator</h1>
         
-        <div class="api-config">
-            <label for="appsScriptUrl">Apps Script URL:</label>
-            <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
-        </div>
-        
         <div style="display: flex; align-items: center; gap: 10px;">
             <div class="doctor-badge">
                 <span id="docNameDisplay" style="color: var(--accent); font-weight: 600;">Dr. Unassigned</span>
@@ -655,10 +650,6 @@
         }
 
         function initUiComponents() {
-            document.getElementById("appsScriptUrl").addEventListener("input", (e) => {
-                localStorage.setItem(ENDPOINT_KEY, e.target.value.trim());
-            });
-
             document.getElementById("searchImg").addEventListener("input", (e) => {
                 filterImageList(e.target.value.toLowerCase());
             });
@@ -1237,12 +1228,16 @@
             draw();
         }
 
+        function getAppsScriptUrl() {
+            return localStorage.getItem(ENDPOINT_KEY) || "https://script.google.com/macros/s/AKfycbyJnMAxwasvQQLMgKpdA2d2kMTSElXWP4Hs0OpszudcrhukpAzCHfzSyWVFRuIoKxBl/exec";
+        }
+
         // 8. One-Click Save API Request (Google Drive Upload)
         async function saveToGoogleDrive() {
             if (currentImageIndex < 0) return;
             
             const imageName = activeQueue[currentImageIndex];
-            const urlInput = document.getElementById("appsScriptUrl").value.trim();
+            const urlInput = getAppsScriptUrl();
             
             if (!urlInput) {
                 alert("Please configure your Google Apps Script Web App URL at the top first!");
