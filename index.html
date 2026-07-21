@@ -536,6 +536,18 @@
         </div>
     </div>
 
+    <!-- Doctor Authentication Modal -->
+    <div id="doctorModal" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 28px; width: 360px; max-width: 90%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <h2 style="color: var(--accent); margin-bottom: 8px; font-size: 20px;">Doctor Login</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Enter your name to load and track your assigned annotation queue.</p>
+            <form id="docLoginForm">
+                <input type="text" id="docNameInput" placeholder="Dr. Harish Kanna" required style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-dark); color: #ffffff; font-size: 14px; margin-bottom: 16px; box-sizing: border-box; text-align: center;" />
+                <button type="submit" class="btn" style="width: 100%; padding: 12px; font-size: 14px; font-weight: 600;">Enter App</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         // 1. App Configuration and Constants
         const LANDMARK_ORDER = [
@@ -732,6 +744,8 @@
         }
 
         function initUiComponents() {
+            document.getElementById("docLoginForm").addEventListener("submit", handleDoctorLogin);
+            
             document.getElementById("searchImg").addEventListener("input", (e) => {
                 filterImageList(e.target.value.toLowerCase());
             });
