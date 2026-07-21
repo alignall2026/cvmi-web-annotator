@@ -971,11 +971,16 @@
         function evaluateCvmiStage() {
             if (!currentLandmarks.C2 || !currentLandmarks.C3 || !currentLandmarks.C4) return null;
             
-            const checkConcavity = (pts) => {
-                if (!pts.IA || !pts.IP || !pts.IM) return "F";
+            const checkConcavityDepth = (pts) => {
+                if (!pts.IA || !pts.IP || !pts.IM) return 0;
                 const baselineMidY = (pts.IA[1] + pts.IP[1]) / 2;
-                const depth = baselineMidY - pts.IM[1];
-                return depth >= 2.0 ? "C" : "F";
+                return baselineMidY - pts.IM[1];
+            };
+
+            const getConcavityLabel = (depth) => {
+                if (depth >= 2.0) return "C"; // Distinct Concavity / Notch
+                if (depth >= 0.8) return "T_C"; // Transitional / Incipient Notch
+                return "F"; // Flat / Slightly Convex
             };
 
             const checkMorphology = (pts) => {
@@ -988,45 +993,84 @@
                 const taperRatio = hAnt / Math.max(hPost, 1);
                 const aspect = width / Math.max(meanH, 1);
 
-                if (taperRatio > 1.12) return "T";
-                if (aspect > 1.15) return "RH";
-                if (aspect >= 0.85 && aspect <= 1.15) return "S";
-                return "RV";
+                if (taperRatio > 1.12) return "T"; // Wedge of Cheese / Trapezoid
+                if (aspect > 1.15) return "RH"; // Bar of Soap / Credit Card (Rectangular Horizontal)
+                if (aspect >= 0.85 && aspect <= 1.15) return "S"; // Stack of Marshmallows (Square)
+                return "RV"; // Rectangular Vertical
             };
 
-            const c2_b = checkConcavity(currentLandmarks.C2);
-            const c3_b = checkConcavity(currentLandmarks.C3);
-            const c4_b = checkConcavity(currentLandmarks.C4);
+            const d2 = checkConcavityDepth(currentLandmarks.C2);
+            const d3 = checkConcavityDepth(currentLandmarks.C3);
+            const d4 = checkConcavityDepth(currentLandmarks.C4);
+
+            const c2_b = getConcavityLabel(d2);
+            const c3_b = getConcavityLabel(d3);
+            const c4_b = getConcavityLabel(d4);
 
             const c3_m = checkMorphology(currentLandmarks.C3);
             const c4_m = checkMorphology(currentLandmarks.C4);
 
-            let stage = "CS1";
-            let desc = "Prepubertal stage (Peak growth ~2 yrs away)";
+            let stage = "CS 1";
+            let mnemonic = "🧀 Wedge of Cheese";
+            let desc = "Prepubertal Stage (Peak growth ~2 yrs away)";
+            let clinical = "Ideal timing for RME (Rapid Maxillary Expansion) + Facial Mask therapy.";
 
             if (c2_b === "F" && c3_b === "F" && c4_b === "F") {
-                stage = "CS1";
-                desc = "Prepubertal stage (Peak growth ~2 yrs away)";
-            } else if (c2_b === "C" && c3_b === "F" && c4_b === "F") {
-                stage = "CS2";
-                desc = "Prepubertal 'Get-Ready' stage (Peak growth ~1 yr away)";
-            } else if (c2_b === "C" && c3_b === "C" && c4_b === "F") {
-                stage = "CS3";
-                desc = "Circumpubertal stage (Peak growth begins now!)";
-            } else if (c2_b === "C" && c3_b === "C" && c4_b === "C") {
-                if (c3_m === "RV" || c4_m === "RV") {
-                    stage = "CS6";
-                    desc = "Postpubertal stage (Growth fully complete)";
-                } else if (c3_m === "S" || c4_m === "S") {
-                    stage = "CS5";
-                    desc = "Postpubertal stage (Growth nearly complete)";
+                stage = "CS 1";
+                mnemonic = "🧀 Wedge of Cheese shape";
+                desc = "Prepubertal Stage (Peak growth ~2 yrs away)";
+                clinical = "Ideal timing for Maxillary Expansion & Facial Mask therapy.";
+            } else if (c2_b !== "F" && c3_b === "F" && c4_b === "F") {
+                if (c3_b === "T_C") {
+                    stage = "CS 2–3";
+                    mnemonic = "🧀 Wedge ➔ 🏒 Hockey Puck transition";
+                    desc = "Prepubertal to Circumpubertal Transition";
+                    clinical = "Mandibular peak growth velocity starts within months.";
                 } else {
-                    stage = "CS4";
-                    desc = "Circumpubertal stage (Peak growth ending)";
+                    stage = "CS 2";
+                    mnemonic = "🧀 Wedge shape + C2 Notch";
+                    desc = "Prepubertal 'Get-Ready' Stage (Peak growth ~1 yr away)";
+                    clinical = "Prepare functional appliance treatment (Twin Block / Herbst).";
+                }
+            } else if (c2_b !== "F" && c3_b !== "F" && c4_b === "F") {
+                if (c4_b === "T_C") {
+                    stage = "CS 3–4";
+                    mnemonic = "🏒 Hockey Puck ➔ 🧼 Bar of Soap transition";
+                    desc = "Peak Mandibular Growth Velocity Ongoing";
+                    clinical = "Maximum orthopedic mandibular acceleration occurs NOW!";
+                } else {
+                    stage = "CS 3";
+                    mnemonic = "🏒 Hockey Puck / Trapezoid shape";
+                    desc = "Circumpubertal Stage (Peak growth begins NOW!)";
+                    clinical = "Peak mandibular growth velocity begins. Maximum treatment efficiency!";
+                }
+            } else if (c2_b !== "F" && c3_b !== "F" && c4_b !== "F") {
+                if (c3_m === "RV" || c4_m === "RV") {
+                    stage = "CS 6";
+                    desc = "Postpubertal Stage (Growth fully complete)";
+                    mnemonic = "📐 Tall Rectangular Vertical shape";
+                    clinical = "Patient ready for orthognathic surgery or dental implants.";
+                } else if (c3_m === "S" || c4_m === "S") {
+                    if (c3_m === "RH" || c4_m === "RH") {
+                        stage = "CS 4–5";
+                        mnemonic = "🧼 Soap Bar ➔ 🍡 Marshmallow transition";
+                        desc = "Postpubertal Transition (Growth slowing down)";
+                        clinical = "Skeletal growth decelerating; complete functional treatment.";
+                    } else {
+                        stage = "CS 5";
+                        mnemonic = "🍡 Stack of Marshmallows (Square)";
+                        desc = "Postpubertal Stage (Growth nearly complete)";
+                        clinical = "Substantial craniofacial growth complete (~90-95%).";
+                    }
+                } else {
+                    stage = "CS 4";
+                    mnemonic = "🧼 Bar of Soap / 💳 Credit Card shape";
+                    desc = "Circumpubertal Stage (Peak growth ending)";
+                    clinical = "Continued accelerated growth velocity ending.";
                 }
             }
 
-            return { stage, desc, c2_b, c3_b, c4_b, c3_m, c4_m };
+            return { stage, mnemonic, desc, clinical, c2_b, c3_b, c4_b, c3_m, c4_m };
         }
 
         function updateUiState() {
@@ -1056,9 +1100,10 @@
                 if (res) {
                     instruction.innerHTML = `
                         <div style="font-weight: 700; color: var(--accent); font-size: 14px;">Evaluated Stage: ${res.stage}</div>
+                        <div style="font-size: 12px; color: #ffeb3b; font-weight: 600; margin-top: 3px;">${res.mnemonic}</div>
                         <div style="font-size: 12px; color: var(--text-main); margin-top: 3px;">${res.desc}</div>
-                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 5px;">
-                            Borders: C2 (${res.c2_b}), C3 (${res.c3_b}), C4 (${res.c4_b}) | Shapes: C3 (${res.c3_m}), C4 (${res.c4_m})
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 5px; line-height: 1.3;">
+                            <strong>Clinical:</strong> ${res.clinical}
                         </div>
                     `;
                 } else {
