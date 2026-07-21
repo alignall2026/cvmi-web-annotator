@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CVMI Orthodontic Cephalometric Web Annotator - Multi-Doctor Edition</title>
     <!-- Inter Google Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -383,12 +383,58 @@
             color: var(--text-muted);
         }
 
-        .shortcut-table kbd {
-            background-color: var(--bg-base);
-            border: 1px solid var(--border-color);
-            padding: 1px 4px;
-            border-radius: 3px;
-            color: var(--text-main);
+        /* Mobile Touch Optimization */
+        @media (max-width: 868px) {
+            body {
+                overflow-y: auto;
+                height: auto;
+            }
+
+            header {
+                padding: 10px 12px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            header h1 {
+                font-size: 14px;
+            }
+
+            .workspace {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 180px;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .canvas-area {
+                width: 100%;
+                height: 60vh;
+                min-height: 380px;
+            }
+
+            .meta-panel {
+                width: 100%;
+                max-height: none;
+                border-left: none;
+                border-top: 1px solid var(--border-color);
+            }
+
+            .modal-card {
+                width: 90%;
+                padding: 16px;
+            }
+
+            .btn {
+                padding: 12px 16px;
+                font-size: 14px;
+                touch-action: manipulation;
+            }
         }
     </style>
 </head>
@@ -671,6 +717,10 @@
             canvas.addEventListener("mouseup", handleMouseUp);
             canvas.addEventListener("wheel", handleWheel, { passive: false });
             canvas.addEventListener("contextmenu", e => e.preventDefault());
+
+            canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
+            canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+            canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
 
             container.addEventListener("keydown", handleKeyDown);
             
@@ -1052,7 +1102,7 @@
                     return;
                 }
                 
-                const hitRadius = 12 / zoom;
+                const hitRadius = Math.max(20 / zoom, 30);
                 LANDMARK_ORDER.forEach(item => {
                     const vert = item[0];
                     const name = item[1];
@@ -1067,6 +1117,74 @@
                 
                 if (selectedLandmark) draw();
             }
+        }
+
+        let touchPinchDist = 0;
+
+        function handleTouchStart(e) {
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const dummyEvent = {
+                    preventDefault: () => {},
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    button: 0,
+                    shiftKey: false
+                };
+                handleMouseDown(dummyEvent);
+            } else if (e.touches.length === 2) {
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                touchPinchDist = Math.hypot(dx, dy);
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (e.touches.length === 1 && selectedLandmark) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const dummyEvent = {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    buttons: 1,
+                    shiftKey: false
+                };
+                handleMouseMove(dummyEvent);
+            } else if (e.touches.length === 1 && isPanning) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                panX = touch.clientX - panStartX;
+                panY = touch.clientY - panStartY;
+                draw();
+            } else if (e.touches.length === 2) {
+                e.preventDefault();
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                const dist = Math.hypot(dx, dy);
+                if (touchPinchDist > 0) {
+                    const factor = dist / touchPinchDist;
+                    const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                    const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                    
+                    const rect = canvas.getBoundingClientRect();
+                    const mouseX = midX - rect.left;
+                    const mouseY = midY - rect.top;
+                    
+                    const imgX = (mouseX - panX) / zoom;
+                    const imgY = (mouseY - panY) / zoom;
+                    
+                    zoom *= factor;
+                    panX = mouseX - imgX * zoom;
+                    panY = mouseY - imgY * zoom;
+                    draw();
+                }
+                touchPinchDist = dist;
+            }
+        }
+
+        function handleTouchEnd(e) {
+            touchPinchDist = 0;
+            handleMouseUp({ button: 0 });
         }
 
         function handleMouseMove(e) {
