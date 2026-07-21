@@ -1022,56 +1022,56 @@
             let clinical = "Ideal timing for RME (Rapid Maxillary Expansion) + Facial Mask therapy.";
 
             if (c2_b === "F" && c3_b === "F" && c4_b === "F") {
-                stage = "CS 1";
+                stage = "CS 1: Initiation";
                 mnemonic = "🧀 Wedge of Cheese shape";
-                desc = "Prepubertal Stage (Peak growth ~2 yrs away)";
+                desc = "Prepubertal Stage (Fishman SMI 1–2)";
                 clinical = "Ideal timing for Maxillary Expansion & Facial Mask therapy.";
             } else if (c2_b !== "F" && c3_b === "F" && c4_b === "F") {
                 if (c3_b === "T_C") {
-                    stage = "CS 2–3";
+                    stage = "CS 2–3: Transition Phase";
                     mnemonic = "🧀 Wedge ➔ 🏒 Hockey Puck transition";
-                    desc = "Prepubertal to Circumpubertal Transition";
+                    desc = "Acceleration to Peak Growth Transition";
                     clinical = "Mandibular peak growth velocity starts within months.";
                 } else {
-                    stage = "CS 2";
+                    stage = "CS 2: Acceleration";
                     mnemonic = "🧀 Wedge shape + C2 Notch";
-                    desc = "Prepubertal 'Get-Ready' Stage (Peak growth ~1 yr away)";
+                    desc = "Prepubertal Stage (Fishman SMI 3–4)";
                     clinical = "Prepare functional appliance treatment (Twin Block / Herbst).";
                 }
             } else if (c2_b !== "F" && c3_b !== "F" && c4_b === "F") {
                 if (c4_b === "T_C") {
-                    stage = "CS 3–4";
+                    stage = "CS 3–4: Transition Phase";
                     mnemonic = "🏒 Hockey Puck ➔ 🧼 Bar of Soap transition";
-                    desc = "Peak Mandibular Growth Velocity Ongoing";
+                    desc = "Peak Growth Velocity Ongoing";
                     clinical = "Maximum orthopedic mandibular acceleration occurs NOW!";
                 } else {
-                    stage = "CS 3";
+                    stage = "CS 3: Transition";
                     mnemonic = "🏒 Hockey Puck / Trapezoid shape";
-                    desc = "Circumpubertal Stage (Peak growth begins NOW!)";
+                    desc = "Circumpubertal Stage (Fishman SMI 5–6)";
                     clinical = "Peak mandibular growth velocity begins. Maximum treatment efficiency!";
                 }
             } else if (c2_b !== "F" && c3_b !== "F" && c4_b !== "F") {
                 if (c3_m === "RV" || c4_m === "RV") {
-                    stage = "CS 6";
-                    desc = "Postpubertal Stage (Growth fully complete)";
+                    stage = "CS 6: Completion";
+                    desc = "Postpubertal Stage (Fishman SMI 11)";
                     mnemonic = "📐 Tall Rectangular Vertical shape";
                     clinical = "Patient ready for orthognathic surgery or dental implants.";
                 } else if (c3_m === "S" || c4_m === "S") {
                     if (c3_m === "RH" || c4_m === "RH") {
-                        stage = "CS 4–5";
+                        stage = "CS 4–5: Transition Phase";
                         mnemonic = "🧼 Soap Bar ➔ 🍡 Marshmallow transition";
-                        desc = "Postpubertal Transition (Growth slowing down)";
+                        desc = "Deceleration to Maturation Transition";
                         clinical = "Skeletal growth decelerating; complete functional treatment.";
                     } else {
-                        stage = "CS 5";
+                        stage = "CS 5: Maturation";
                         mnemonic = "🍡 Stack of Marshmallows (Square)";
-                        desc = "Postpubertal Stage (Growth nearly complete)";
+                        desc = "Postpubertal Stage (Fishman SMI 9–10)";
                         clinical = "Substantial craniofacial growth complete (~90-95%).";
                     }
                 } else {
-                    stage = "CS 4";
+                    stage = "CS 4: Deceleration";
                     mnemonic = "🧼 Bar of Soap / 💳 Credit Card shape";
-                    desc = "Circumpubertal Stage (Peak growth ending)";
+                    desc = "Circumpubertal Stage (Fishman SMI 7–8)";
                     clinical = "Continued accelerated growth velocity ending.";
                 }
             }
