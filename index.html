@@ -559,7 +559,7 @@
         // Global State Variables
         let currentDoctor = localStorage.getItem("cvmi_doctor_name") || "";
         let isJumbledQueue = true; // Default to jumbled sequence per doctor
-        let rawImageFiles = [];
+        let rawImageFiles = Array.from({length: 414}, (_, i) => String(i + 1).padStart(3, '0') + ".jpg");
         let activeQueue = [];
 
         let currentImageIndex = -1;
@@ -663,6 +663,9 @@
         }
 
         function buildActiveQueue() {
+            if (!rawImageFiles || rawImageFiles.length === 0) {
+                initDatasetList();
+            }
             if (isJumbledQueue) {
                 activeQueue = seedShuffle(rawImageFiles, normalizeDoctorName(currentDoctor));
             } else {
