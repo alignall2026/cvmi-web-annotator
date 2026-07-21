@@ -27,11 +27,17 @@ def fast_push():
     
     # 4. Push Image Batch 2 (201.jpg - 414.jpg)
     print("\n--- PUSHING IMAGE BATCH 2 (201-414) ---")
-    run("git add images/")
+    run("git add images/2* images/3* images/40* images/410.jpg images/411.jpg images/412.jpg images/413.jpg images/414.jpg")
     run('git commit -m "Add Cephalogram Dataset Part 2 (201-414)"')
     run("git push origin main")
+
+    # 5. Push Image Batch 3 (415.jpg - 445.jpg) & Archive
+    print("\n--- PUSHING IMAGE BATCH 3 (415-445) & ARCHIVE ---")
+    run("git add images/ archive/")
+    run('git commit -m "Add Cephalogram Dataset Part 3 (415-445)"')
+    run("git push origin main")
     
-    print("\n🎉 ALL CODE & 414 IMAGES PUSHED TO GITHUB SUCCESSFULLY!")
+    print("\nSUCCESS: ALL CODE & 445 IMAGES PUSHED TO GITHUB!")
 
 if __name__ == "__main__":
     fast_push()
