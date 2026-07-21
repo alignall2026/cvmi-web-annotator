@@ -968,6 +968,67 @@
             }
         }
 
+        function evaluateCvmiStage() {
+            if (!currentLandmarks.C2 || !currentLandmarks.C3 || !currentLandmarks.C4) return null;
+            
+            const checkConcavity = (pts) => {
+                if (!pts.IA || !pts.IP || !pts.IM) return "F";
+                const baselineMidY = (pts.IA[1] + pts.IP[1]) / 2;
+                const depth = baselineMidY - pts.IM[1];
+                return depth >= 2.0 ? "C" : "F";
+            };
+
+            const checkMorphology = (pts) => {
+                if (!pts.SA || !pts.SP || !pts.IA || !pts.IP) return "T";
+                const width = Math.hypot(pts.SP[0] - pts.SA[0], pts.SP[1] - pts.SA[1]);
+                const hAnt = Math.hypot(pts.SA[0] - pts.IA[0], pts.SA[1] - pts.IA[1]);
+                const hPost = Math.hypot(pts.SP[0] - pts.IP[0], pts.SP[1] - pts.IP[1]);
+                const meanH = (hAnt + hPost) / 2;
+
+                const taperRatio = hAnt / Math.max(hPost, 1);
+                const aspect = width / Math.max(meanH, 1);
+
+                if (taperRatio > 1.12) return "T";
+                if (aspect > 1.15) return "RH";
+                if (aspect >= 0.85 && aspect <= 1.15) return "S";
+                return "RV";
+            };
+
+            const c2_b = checkConcavity(currentLandmarks.C2);
+            const c3_b = checkConcavity(currentLandmarks.C3);
+            const c4_b = checkConcavity(currentLandmarks.C4);
+
+            const c3_m = checkMorphology(currentLandmarks.C3);
+            const c4_m = checkMorphology(currentLandmarks.C4);
+
+            let stage = "CS1";
+            let desc = "Prepubertal stage (Peak growth ~2 yrs away)";
+
+            if (c2_b === "F" && c3_b === "F" && c4_b === "F") {
+                stage = "CS1";
+                desc = "Prepubertal stage (Peak growth ~2 yrs away)";
+            } else if (c2_b === "C" && c3_b === "F" && c4_b === "F") {
+                stage = "CS2";
+                desc = "Prepubertal 'Get-Ready' stage (Peak growth ~1 yr away)";
+            } else if (c2_b === "C" && c3_b === "C" && c4_b === "F") {
+                stage = "CS3";
+                desc = "Circumpubertal stage (Peak growth begins now!)";
+            } else if (c2_b === "C" && c3_b === "C" && c4_b === "C") {
+                if (c3_m === "RV" || c4_m === "RV") {
+                    stage = "CS6";
+                    desc = "Postpubertal stage (Growth fully complete)";
+                } else if (c3_m === "S" || c4_m === "S") {
+                    stage = "CS5";
+                    desc = "Postpubertal stage (Growth nearly complete)";
+                } else {
+                    stage = "CS4";
+                    desc = "Circumpubertal stage (Peak growth ending)";
+                }
+            }
+
+            return { stage, desc, c2_b, c3_b, c4_b, c3_m, c4_m };
+        }
+
         function updateUiState() {
             for (let i = 0; i < LANDMARK_ORDER.length; i++) {
                 const row = document.getElementById(`row-${i}`);
@@ -991,7 +1052,18 @@
                 instruction.style.borderColor = "var(--accent)";
                 instruction.style.color = "var(--accent-hover)";
             } else {
-                instruction.innerText = "All 15 landmarks placed!\nAdjust points by dragging them with your mouse, then click Save.";
+                const res = evaluateCvmiStage();
+                if (res) {
+                    instruction.innerHTML = `
+                        <div style="font-weight: 700; color: var(--accent); font-size: 14px;">Evaluated Stage: ${res.stage}</div>
+                        <div style="font-size: 12px; color: var(--text-main); margin-top: 3px;">${res.desc}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 5px;">
+                            Borders: C2 (${res.c2_b}), C3 (${res.c3_b}), C4 (${res.c4_b}) | Shapes: C3 (${res.c3_m}), C4 (${res.c4_m})
+                        </div>
+                    `;
+                } else {
+                    instruction.innerText = "All 15 landmarks placed!\nAdjust points by dragging them with your mouse, then click Save.";
+                }
                 instruction.style.borderColor = "var(--success)";
                 instruction.style.color = "var(--success)";
             }
