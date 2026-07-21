@@ -566,7 +566,8 @@
         let activeLandmarkIdx = 0;
         let currentLandmarks = {};
         let annotatedCache = new Set();
-        
+        let isDefaultTemplate = false;
+
         // Image & Canvas elements
         const cephImage = new Image();
         const canvas = document.getElementById("cephCanvas");
@@ -876,6 +877,7 @@
                     const data = JSON.parse(localSaved);
                     currentLandmarks = data.landmarks;
                     activeLandmarkIdx = LANDMARK_ORDER.length;
+                    isDefaultTemplate = false;
                     log(`Loaded coordinates from session cache for ${currentDoctor}.`);
                     updateUiState();
                     return;
@@ -893,6 +895,7 @@
                         if (data.status === "success" && data.landmarks_map && data.landmarks_map[imageName]) {
                             currentLandmarks = data.landmarks_map[imageName];
                             activeLandmarkIdx = LANDMARK_ORDER.length;
+                            isDefaultTemplate = false;
                             log(`Loaded saved coordinates from Google Drive for ${currentDoctor}.`);
                             updateUiState();
                             return;
@@ -908,6 +911,7 @@
                     const data = await response.json();
                     currentLandmarks = data.landmarks;
                     activeLandmarkIdx = LANDMARK_ORDER.length;
+                    isDefaultTemplate = false;
                     log(`Loaded pre-existing coordinates from disk: ${imageName}_landmarks.json`);
                     updateUiState();
                     return;
@@ -923,11 +927,12 @@
             const h = cephImage.height;
             const w = cephImage.width;
             
-            const cx = Math.floor(w * 0.615);
-            const cy = Math.floor(h * 0.635);
+            // Cervical spine is located on the left side (~20% from left edge)
+            const cx = Math.floor(w * 0.20);
+            const cy = Math.floor(h * 0.58);
             const bw = Math.floor(w * 0.065);
             const bh = Math.floor(h * 0.055);
-            const spacing = Math.floor(h * 0.05);
+            const spacing = Math.floor(h * 0.045);
             
             currentLandmarks = {
                 "C2": createVertebraPoints(cx, cy - bh - spacing, bw, bh, true),
@@ -935,7 +940,8 @@
                 "C4": createVertebraPoints(cx, cy + bh + spacing, bw, bh, false)
             };
             activeLandmarkIdx = LANDMARK_ORDER.length;
-            log(`Default vertebra templates pre-placed. Adjust coordinate dots.`);
+            isDefaultTemplate = true;
+            log(`Default vertebra templates pre-placed. Adjust coordinate dots to evaluate stage.`);
         }
 
         function createVertebraPoints(cx, cy, bw, bh, isC2) {
@@ -1095,6 +1101,16 @@
                 instruction.innerText = `Click on the image to place landmark:\n→ ${item[0]} ${item[1]}\n(${item[2]})`;
                 instruction.style.borderColor = "var(--accent)";
                 instruction.style.color = "var(--accent-hover)";
+            } else if (isDefaultTemplate) {
+                instruction.innerHTML = `
+                    <div style="font-weight: 600; color: var(--accent); font-size: 13px;">Template Pre-placed on C2–C4</div>
+                    <div style="font-size: 12px; color: var(--text-main); margin-top: 3px;">Drag dots to align with C2, C3 & C4 vertebrae.</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 5px;">
+                        The CS stage will evaluate live as you adjust the points.
+                    </div>
+                `;
+                instruction.style.borderColor = "var(--accent)";
+                instruction.style.color = "var(--text-main)";
             } else {
                 const res = evaluateCvmiStage();
                 if (res) {
@@ -1383,6 +1399,7 @@
             }
 
             if (selectedLandmark && e.buttons === 1) {
+                isDefaultTemplate = false;
                 const vert = selectedLandmark.vertebra;
                 const name = selectedLandmark.name;
                 
@@ -1411,6 +1428,7 @@
             }
             if (selectedLandmark) {
                 selectedLandmark = null;
+                updateUiState();
                 draw();
             }
         }
