@@ -688,6 +688,27 @@
             refreshImageList();
             updateProgressText();
             selectImage(0);
+            syncDoctorAnnotationsFromDrive();
+        }
+
+        async function syncDoctorAnnotationsFromDrive() {
+            if (!currentDoctor) return;
+            const urlInput = getAppsScriptUrl();
+            if (!urlInput) return;
+            
+            try {
+                const fetchUrl = `${urlInput}?doctor_name=${encodeURIComponent(currentDoctor)}`;
+                const res = await fetch(fetchUrl);
+                const data = await res.json();
+                if (data.status === "success" && data.saved_images) {
+                    data.saved_images.forEach(img => annotatedCache.add(img));
+                    refreshImageList();
+                    updateProgressText();
+                    log(`Synced ${data.saved_images.length} saved annotations from Google Drive for ${currentDoctor}.`);
+                }
+            } catch(e) {
+                log(`Drive sync note: ${e.message}`);
+            }
         }
 
         function toggleQueueMode() {
@@ -857,6 +878,25 @@
                     return;
                 } catch(e) {}
             }
+            
+            // 2. Try fetching saved landmarks from Google Drive remote backend
+            try {
+                const urlInput = getAppsScriptUrl();
+                if (urlInput && currentDoctor) {
+                    const fetchUrl = `${urlInput}?doctor_name=${encodeURIComponent(currentDoctor)}&image_name=${encodeURIComponent(imageName)}`;
+                    const response = await fetch(fetchUrl);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.status === "success" && data.landmarks_map && data.landmarks_map[imageName]) {
+                            currentLandmarks = data.landmarks_map[imageName];
+                            activeLandmarkIdx = LANDMARK_ORDER.length;
+                            log(`Loaded saved coordinates from Google Drive for ${currentDoctor}.`);
+                            updateUiState();
+                            return;
+                        }
+                    }
+                }
+            } catch (err) {}
             
             // 2. Try fetching pre-existing landmarks from local files
             try {
