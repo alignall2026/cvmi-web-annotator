@@ -587,8 +587,12 @@
         const ENDPOINT_KEY = "cvmi_apps_script_url";
         const DOCTOR_KEY = "cvmi_doctor_name";
 
+        function normalizeDoctorName(name) {
+            return (name || "Unassigned").toLowerCase().replace(/[^a-z0-9]/g, "");
+        }
+
         function getDoctorCacheKey(imageName) {
-            const cleanDoc = (currentDoctor || "Unassigned").trim().replace(/\s+/g, "_");
+            const cleanDoc = normalizeDoctorName(currentDoctor);
             return `cvmi_anno_${cleanDoc}_${imageName}`;
         }
 
@@ -660,18 +664,24 @@
 
         function buildActiveQueue() {
             if (isJumbledQueue) {
-                activeQueue = seedShuffle(rawImageFiles, currentDoctor || "default");
+                activeQueue = seedShuffle(rawImageFiles, normalizeDoctorName(currentDoctor));
             } else {
                 activeQueue = [...rawImageFiles];
             }
             
             // Reload cached annotated set for current doctor
             annotatedCache.clear();
-            const cachePrefix = `cvmi_anno_${(currentDoctor || "Unassigned").trim().replace(/\s+/g, "_")}_`;
+            const cleanDoc = normalizeDoctorName(currentDoctor);
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key.startsWith(cachePrefix)) {
-                    annotatedCache.add(key.replace(cachePrefix, ""));
+                if (key.startsWith("cvmi_anno_")) {
+                    const keyClean = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+                    if (keyClean.includes(cleanDoc)) {
+                        const match = key.match(/\d{3}\.jpg$/);
+                        if (match) {
+                            annotatedCache.add(match[0]);
+                        }
+                    }
                 }
             }
             
@@ -825,7 +835,18 @@
             currentLandmarks = {};
             
             // 1. Try loading cached landmarks for current doctor in localStorage
-            const localSaved = localStorage.getItem(getDoctorCacheKey(imageName));
+            const cleanDoc = normalizeDoctorName(currentDoctor);
+            let localSaved = localStorage.getItem(getDoctorCacheKey(imageName));
+            if (!localSaved) {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (k.endsWith(`_${imageName}`) && k.toLowerCase().replace(/[^a-z0-9]/g, "").includes(cleanDoc)) {
+                        localSaved = localStorage.getItem(k);
+                        break;
+                    }
+                }
+            }
+
             if (localSaved) {
                 try {
                     const data = JSON.parse(localSaved);
