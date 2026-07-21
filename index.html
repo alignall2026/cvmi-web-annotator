@@ -455,6 +455,28 @@
         </div>
     </div>
 
+    <!-- Share & Morph Link Modal -->
+    <div class="modal-overlay" id="shareModal" style="display: none;">
+        <div class="modal-card" style="width: 400px; text-align: center;">
+            <h2 style="font-size: 18px; margin-bottom: 6px; color: var(--accent); font-weight: 600;">🔗 Share App & QR Code</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+                Scan QR code with phone camera or use branded quick link:
+            </p>
+            <div style="background: #ffffff; padding: 10px; border-radius: 8px; display: inline-block; margin-bottom: 14px;">
+                <img id="qrCodeImg" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https%3A%2F%2Falignall2026.github.io%2Fcvmi-web-annotator%2F" alt="App QR Code" style="width: 160px; height: 160px; display: block;" />
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 6px; text-align: left; margin-bottom: 16px;">
+                <label style="font-size: 11px; color: var(--text-muted);">Branded Short Link:</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="shareUrlInput" value="https://tinyurl.com/DrHarish-CVMI" readonly style="flex-grow: 1; padding: 8px 10px; font-size: 12px; background: var(--bg-base); border: 1px solid var(--border-color); color: var(--accent); border-radius: 4px; outline: none;" />
+                    <button class="btn" onclick="copyShareUrl()" style="width: auto; padding: 8px 14px; font-size: 12px;">Copy</button>
+                </div>
+            </div>
+            <button class="btn btn-outline" onclick="closeShareModal()" style="width: 100%; margin-top: 0;">Close</button>
+        </div>
+    </div>
+
     <!-- Header Section -->
     <header>
         <h1><span>CVMI</span> Web Annotator</h1>
@@ -464,6 +486,7 @@
                 <span id="docNameDisplay" style="color: var(--accent); font-weight: 600;">Dr. Harish Kanna</span>
                 <button class="btn btn-outline" id="btnSwitchDoc" style="margin-top:0; padding:2px 8px; font-size:11px;">Switch</button>
             </div>
+            <button class="btn btn-outline" onclick="openShareModal()" style="margin-top:0; padding:4px 8px; font-size:11px;">🔗 Share</button>
             <button class="btn btn-outline" id="btnToggleQueue" style="margin-top:0; padding:4px 8px; font-size:11px;">🔀 Jumbled</button>
             <div style="font-size: 12px; white-space: nowrap;" id="progressLbl">0 / 414 Labeled</div>
         </div>
@@ -613,8 +636,33 @@
             }
         }
 
+        function openShareModal() {
+            const docParam = encodeURIComponent((currentDoctor || "Dr. Harish Kanna").replace(/\s+/g, '_'));
+            const fullUrl = `https://alignall2026.github.io/cvmi-web-annotator/?doctor=${docParam}`;
+            document.getElementById("qrCodeImg").src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(fullUrl)}`;
+            document.getElementById("shareUrlInput").value = fullUrl;
+            document.getElementById("shareModal").style.display = "flex";
+        }
+
+        function closeShareModal() {
+            document.getElementById("shareModal").style.display = "none";
+        }
+
+        function copyShareUrl() {
+            const input = document.getElementById("shareUrlInput");
+            input.select();
+            navigator.clipboard.writeText(input.value);
+            log("Copied share link to clipboard!");
+            alert("Copied share link to clipboard:\n" + input.value);
+        }
+
         function checkDoctorAuth() {
-            if (!currentDoctor) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const docParam = urlParams.get('doctor') || urlParams.get('doc');
+            if (docParam) {
+                currentDoctor = docParam.replace(/_/g, ' ');
+                localStorage.setItem(DOCTOR_KEY, currentDoctor);
+            } else if (!currentDoctor) {
                 currentDoctor = "Dr. Harish Kanna";
                 localStorage.setItem(DOCTOR_KEY, currentDoctor);
             }
