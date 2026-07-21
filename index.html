@@ -488,7 +488,7 @@
             </div>
             <button class="btn btn-outline" onclick="openShareModal()" style="margin-top:0; padding:4px 8px; font-size:11px;">🔗 Share</button>
             <button class="btn btn-outline" id="btnToggleQueue" style="margin-top:0; padding:4px 8px; font-size:11px;">🔀 Jumbled</button>
-            <div style="font-size: 12px; white-space: nowrap;" id="progressLbl">0 / 414 Labeled</div>
+            <div style="font-size: 12px; white-space: nowrap;" id="progressLbl">0 / 445 Labeled</div>
         </div>
     </header>
 
@@ -583,7 +583,7 @@
         const DOCTOR_KEY = "cvmi_doctor_name";
         let currentDoctor = localStorage.getItem(DOCTOR_KEY) || "";
         let isJumbledQueue = true; // Default to jumbled sequence per doctor
-        let rawImageFiles = Array.from({length: 414}, (_, i) => String(i + 1).padStart(3, '0') + ".jpg");
+        let rawImageFiles = Array.from({length: 445}, (_, i) => String(i + 1).padStart(3, '0') + ".jpg");
         let activeQueue = [];
 
         let currentImageIndex = -1;
@@ -630,8 +630,8 @@
 
         function initDatasetList() {
             rawImageFiles = [];
-            // Generates sequence of 414 images (includes the 14 new screenshots: 401.jpg to 414.jpg)
-            for (let i = 1; i <= 414; i++) {
+            // Generates sequence of 445 images (includes the 14 new screenshots: 401.jpg to 414.jpg, and new WhatsApp batch 415.jpg to 445.jpg)
+            for (let i = 1; i <= 445; i++) {
                 rawImageFiles.push(String(i).padStart(3, '0') + ".jpg");
             }
         }
