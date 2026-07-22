@@ -521,7 +521,7 @@
             <div class="panel-section">
                 <h3>Actions</h3>
                 <button class="btn" id="btnSave">Save to Google Drive</button>
-                <button class="btn btn-outline" id="btnReset">Reset Template</button>
+                <button class="btn btn-outline" id="btnReset" style="margin-top: 8px; border-color: var(--accent); color: var(--accent-hover); font-weight: 500;">Show / Reset 15 Landmarks</button>
                 <div style="display: flex; gap: 8px; margin-top: 8px;">
                     <button class="btn btn-outline" id="btnPrev" style="margin-top:0;">Previous</button>
                     <button class="btn btn-outline" id="btnNext" style="margin-top:0;">Next</button>
@@ -921,6 +921,17 @@
             };
         }
 
+        function isAnnotationComplete(landmarks) {
+            if (!landmarks) return false;
+            let count = 0;
+            ["C2", "C3", "C4"].forEach(vert => {
+                if (landmarks[vert]) {
+                    count += Object.keys(landmarks[vert]).length;
+                }
+            });
+            return count === 15;
+        }
+
         async function loadLandmarkData(imageName) {
             activeLandmarkIdx = 0;
             currentLandmarks = {};
@@ -941,12 +952,14 @@
             if (localSaved) {
                 try {
                     const data = JSON.parse(localSaved);
-                    currentLandmarks = data.landmarks;
-                    activeLandmarkIdx = LANDMARK_ORDER.length;
-                    isDefaultTemplate = false;
-                    log(`Loaded coordinates from session cache for ${currentDoctor}.`);
-                    updateUiState();
-                    return;
+                    if (isAnnotationComplete(data.landmarks)) {
+                        currentLandmarks = data.landmarks;
+                        activeLandmarkIdx = LANDMARK_ORDER.length;
+                        isDefaultTemplate = false;
+                        log(`Loaded coordinates from session cache for ${currentDoctor}.`);
+                        updateUiState();
+                        return;
+                    }
                 } catch(e) {}
             }
             
@@ -959,32 +972,37 @@
                     if (response.ok) {
                         const data = await response.json();
                         if (data.status === "success" && data.landmarks_map && data.landmarks_map[imageName]) {
-                            currentLandmarks = data.landmarks_map[imageName];
-                            activeLandmarkIdx = LANDMARK_ORDER.length;
-                            isDefaultTemplate = false;
-                            log(`Loaded saved coordinates from Google Drive for ${currentDoctor}.`);
-                            updateUiState();
-                            return;
+                            const landmarks = data.landmarks_map[imageName];
+                            if (isAnnotationComplete(landmarks)) {
+                                currentLandmarks = landmarks;
+                                activeLandmarkIdx = LANDMARK_ORDER.length;
+                                isDefaultTemplate = false;
+                                log(`Loaded saved coordinates from Google Drive for ${currentDoctor}.`);
+                                updateUiState();
+                                return;
+                            }
                         }
                     }
                 }
             } catch (err) {}
             
-            // 2. Try fetching pre-existing landmarks from local files
+            // 3. Try fetching pre-existing landmarks from local files
             try {
                 const response = await fetch(`images/${imageName}_landmarks.json`);
                 if (response.ok) {
                     const data = await response.json();
-                    currentLandmarks = data.landmarks;
-                    activeLandmarkIdx = LANDMARK_ORDER.length;
-                    isDefaultTemplate = false;
-                    log(`Loaded pre-existing coordinates from disk: ${imageName}_landmarks.json`);
-                    updateUiState();
-                    return;
+                    if (isAnnotationComplete(data.landmarks)) {
+                        currentLandmarks = data.landmarks;
+                        activeLandmarkIdx = LANDMARK_ORDER.length;
+                        isDefaultTemplate = false;
+                        log(`Loaded pre-existing coordinates from disk: ${imageName}_landmarks.json`);
+                        updateUiState();
+                        return;
+                    }
                 }
             } catch (err) {}
             
-            // 3. Fallback to placing default template on right side
+            // 4. Fallback to placing default template on right side
             placeDefaultLayout();
             updateUiState();
         }
